@@ -1,6 +1,8 @@
 import pandas as pd
 import networkx as nx
-import plotly.graph_objects as go
+import dash
+from dash import html, dcc, Input, Output
+import dash_cytoscape as cyto
 
 # Load the CSV file
 df = pd.read_csv("C:\\Users\\evely\\OneDrive\\Desktop\\prerequisite_relationships1.csv")
@@ -16,57 +18,68 @@ G = nx.DiGraph()
 for index, row in df_exploded.iterrows():
     G.add_edge(row['Course Code'], row['Is a Prerequisite for'])
 
-# Position nodes using the spring layout
-pos = nx.spring_layout(G, k=0.5)  # k controls the spacing between nodes
-
-# For each node and edge, extract the positions
-edge_x = []
-edge_y = []
-for edge in G.edges():
-    x0, y0 = pos[edge[0]]
-    x1, y1 = pos[edge[1]]
-    edge_x.append(x0)
-    edge_x.append(x1)
-    edge_x.append(None)
-    edge_y.append(y0)
-    edge_y.append(y1)
-    edge_y.append(None)
-
-edge_trace = go.Scatter(
-    x=edge_x, y=edge_y,
-    line=dict(width=0.5, color='#888'),
-    hoverinfo='none',
-    mode='lines')
-
-node_x = []
-node_y = []
-node_text = []
+# Convert the graph into a format that can be used by Dash Cytoscape
+elements = []
 for node in G.nodes():
-    x, y = pos[node]
-    node_x.append(x)
-    node_y.append(y)
-    node_text.append(node)
+    elements.append({'data': {'id': node, 'label': node}})
+for edge in G.edges():
+    elements.append({'data': {'source': edge[0], 'target': edge[1]}})
 
-node_trace = go.Scatter(
-    x=node_x, y=node_y,
-    mode='markers+text',
-    hoverinfo='text',
-    marker=dict(
-        showscale=False,
-        colorscale='YlGnBu',
-        size=10,
-        line_width=2))
+app = dash.Dash(__name__)
+app.layout = html.Div([
+    html.P("Click on a node to highlight its connections:"),
+    cyto.Cytoscape(
+        id='cytoscape-graph',
+        elements=elements,
+        style={'width': '100%', 'height': '400px'},
+        layout={'name': 'cose'},
+        stylesheet=[
+            {'selector': 'node',
+             'style': {
+                 'label': 'data(label)',
+                 'background-color': '#0074D9'}},
+            {'selector': 'edge',
+             'style': {'line-color': '#CCCCCC'}},
+            {'selector': '.highlighted',
+             'style': {'background-color': '#FF4136', 'line-color': '#FF4136'}}
+        ]
+    )
+])
 
-node_trace.text = node_text
+@app.callback(
+    Output('cytoscape-graph', 'stylesheet'),
+    Input('cytoscape-graph', 'tapNodeData')
+)
+def generate_stylesheet(node_data):
+    if not node_data:
+        return [{
+            'selector': 'node',
+            'style': {
+                'background-color': '#0074D9'
+            }},
+            {'selector': 'edge',
+             'style': {
+                 'line-color': '#CCCCCC'
+            }}
+        ]
+    stylesheet = [
+        {'selector': 'node',
+         'style': {
+             'background-color': '#0074D9'
+         }},
+        {'selector': f'node[id = "{node_data["id"]}"]',
+         'style': {
+             'background-color': '#FF4136'
+         }},
+        {'selector': f'edge[source = "{node_data["id"]}"]',
+         'style': {
+             'line-color': '#FF4136'
+         }},
+        {'selector': 'edge',
+         'style': {'line-color': '#CCCCCC',
+                   'curve-style': 'bezier'}}
+    ]
+    return stylesheet
 
-fig = go.Figure(data=[edge_trace, node_trace],
-                layout=go.Layout(
-                    showlegend=False,
-                    hovermode='closest',
-                    margin=dict(b=0,l=0,r=0,t=0),
-                    xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-                    yaxis=dict(showgrid=False, zeroline=False, showticklabels=False))
-                )
-
-fig.update_layout(title='Interactive Course Prerequisite Graph', title_x=0.5)
-fig.show()
+if __name__ == '__main__':
+    app.run_server(debug=True)

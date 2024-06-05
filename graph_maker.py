@@ -6,7 +6,7 @@ import dash_cytoscape as cyto
 import random
 
 # Load the CSV file
-df = pd.read_csv("C:\\Users\\evely\\OneDrive\\Desktop\\McGill Courses and Prereqs9.csv")
+df = pd.read_csv("C:\\Users\\evely\\OneDrive\\Desktop\\Formatted McGill Courses and Prereqs.csv")
 
 # Ensure all data is treated as string and handle missing values
 df['Course Code'] = df['Course Code'].astype(str)

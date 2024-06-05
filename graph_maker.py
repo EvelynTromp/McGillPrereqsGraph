@@ -91,20 +91,20 @@ app.layout = html.Div([
     State('cytoscape-graph', 'elements')
 )
 def display_cluster_details(node_data, n_clicks, current_elements):
-    if not node_data or n_clicks > 0:
+    if not node_data or ' ' in node_data['id'] or n_clicks > 0:
         return cluster_elements
 
     prefix = node_data['id']
-    connected_nodes = {
+    detailed_nodes = {
         node: {'data': {'id': node, 'label': node}, 'style': {'background-color': prefix_colors[node.split(' ')[0] if node.split(' ')[0] in prefix_colors else prefix]}}
-        for node in nx.descendants(G, prefix) | {prefix}
+        for node in G.nodes() if node.startswith(prefix) or any(prereq.startswith(prefix) for prereq in G.predecessors(node))
     }
-    connected_edges = [
+    detailed_edges = [
         {'data': {'source': edge[0], 'target': edge[1]}}
-        for edge in G.edges() if edge[0] in connected_nodes and edge[1] in connected_nodes
+        for edge in G.edges() if (edge[0].startswith(prefix) or edge[1].startswith(prefix)) and (edge[0] in detailed_nodes and edge[1] in detailed_nodes)
     ]
 
-    return list(connected_nodes.values()) + connected_edges
+    return list(detailed_nodes.values()) + detailed_edges
 
 if __name__ == '__main__':
     app.run_server(debug=True)

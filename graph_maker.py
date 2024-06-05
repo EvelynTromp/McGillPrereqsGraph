@@ -24,7 +24,6 @@ for index, row in df_exploded.iterrows():
     if row['Prerequisites'].strip():  # Only add edge if there is a prerequisite
         G.add_edge(row['Course Code'], row['Prerequisites'])
 
-# Continue with your existing code
 
 # Define a function to generate light colors
 def generate_light_color():
@@ -46,6 +45,9 @@ for node in G.nodes():
         })
         seen_prefixes.add(prefix)
 
+# Sort cluster elements alphabetically by their labels
+cluster_elements.sort(key=lambda x: x['data']['label'])
+
 app = dash.Dash(__name__)
 app.layout = html.Div([
     html.Button("All Codes", id="reset-button", n_clicks=0),
@@ -58,8 +60,7 @@ app.layout = html.Div([
         stylesheet=[
             {
                 'selector': '.cluster',
-                'style': {
-                    'content': 'data(label)',
+                'style': {                    'content': 'data(label)',
                     'text-valign': 'center',
                     'color': 'white',
                     'text-outline-width': 2,
@@ -68,7 +69,7 @@ app.layout = html.Div([
                     'height': '60px'
                 }
             },
-            {
+{
                 'selector': 'node',
                 'style': {
                     'background-color': '#888',
@@ -90,9 +91,9 @@ app.layout = html.Div([
         ]
     )
 ])
-
 @app.callback(
     Output('cytoscape-graph', 'elements'),
+    Output('cytoscape-graph', 'layout'),
     [Input('cytoscape-graph', 'tapNodeData'),
      Input('reset-button', 'n_clicks')],
     State('cytoscape-graph', 'elements')
@@ -106,47 +107,38 @@ def display_cluster_details(node_data, n_clicks, current_elements):
 
         # Reset the graph to initial state if the reset button was clicked
         if trigger_id == 'reset-button':
-            return cluster_elements
+            return cluster_elements, {'name': 'grid'}  # Return elements with 'grid' layout
 
-    # Display detailed nodes for a tapped cluster
     if node_data:
-        # Handle cluster node click
-        if ' ' not in node_data['id']:  # Assuming cluster IDs do not contain spaces
-            prefix = node_data['id']
-            detailed_nodes = {
-                node: {'data': {'id': node, 'label': node}, 'style': {'background-color': prefix_colors[node.split(' ')[0]]}}
+        prefix = node_data['id']
+        if ' ' not in prefix:  # Cluster node click
+            detailed_nodes = [
+                {'data': {'id': node, 'label': node}, 'style': {'background-color': prefix_colors[node.split(' ')[0]]}}
                 for node in G.nodes() if node.startswith(prefix)
-            }
-            detailed_edges = [
-                {'data': {'source': edge[0], 'target': edge[1]}}
-                for edge in G.edges() if edge[0].startswith(prefix) and edge[1].startswith(prefix) and edge[0] in detailed_nodes and edge[1] in detailed_nodes
             ]
-            return list(detailed_nodes.values()) + detailed_edges
+            detailed_edges = [
+                {'data': {'source': edge[1], 'target': edge[0]}}  # Reverse the direction for display
+                for edge in G.edges() if edge[1].startswith(prefix) and edge[0].startswith(prefix)
+            ]
+            return detailed_nodes + detailed_edges, {'name': 'cose'}
 
-        # Handle class node click, highlight connected edges in red and include connected nodes with their cluster colors
-        else:
+        else:  # Class node click
             node_id = node_data['id']
             updated_nodes = []
             updated_edges = []
             connected_nodes = set()
             for edge in G.edges():
-                if node_id == edge[0] or node_id == edge[1]:
-                    connected_nodes.add(edge[0])
-                    connected_nodes.add(edge[1])
+                if node_id in edge:
+                    connected_nodes.update(edge)
                     edge_style = {'line-color': 'red', 'width': 4}
-                    updated_edges.append({'data': {'source': edge[0], 'target': edge[1]}, 'style': edge_style})
-            for node in G.nodes():
-                if node in connected_nodes:
-                    node_style = {'background-color': prefix_colors[node.split(' ')[0]]}
-                    updated_nodes.append({'data': {'id': node, 'label': node}, 'style': node_style})
-                elif node == node_id:
-                    node_style = {'background-color': '#888', 'border-color': 'red', 'border-width': 2}
-                    updated_nodes.append({'data': {'id': node, 'label': node}, 'style': node_style})
-            
-            return updated_nodes + updated_edges
+                    updated_edges.append({'data': {'source': edge[1], 'target': edge[0]}, 'style': edge_style})  # Reverse the direction for display
+            for node in connected_nodes:
+                node_style = {'background-color': prefix_colors[node.split(' ')[0]]}
+                updated_nodes.append({'data': {'id': node, 'label': node}, 'style': node_style})
 
-    # Return initial state if no node data or other conditions not met
-    return cluster_elements
+            return updated_nodes + updated_edges, {'name': 'cose'}
+
+    return cluster_elements, {'name': 'grid'}
 
 
 

@@ -102,25 +102,27 @@ def display_cluster_details(node_data, n_clicks, current_elements):
             return cluster_elements
 
     # Display detailed nodes for a tapped cluster
-    if node_data and ' ' not in node_data['id']:
-        prefix = node_data['id']
-        detailed_nodes = {
-            node: {'data': {'id': node, 'label': node}, 'style': {'background-color': prefix_colors[node.split(' ')[0] if node.split(' ')[0] in prefix_colors else prefix]}}
-            for node in G.nodes() if node.startswith(prefix) or any(prereq.startswith(prefix) for prereq in G.predecessors(node))
-        }
-        detailed_edges = [
-            {'data': {'source': edge[0], 'target': edge[1]}}
-            for edge in G.edges() if (edge[0].startswith(prefix) or edge[1].startswith(prefix)) and (edge[0] in detailed_nodes and edge[1] in detailed_nodes)
-        ]
+    if node_data:
+        # Handle cluster node click
+        if ' ' not in node_data['id']:  # Assuming cluster IDs do not contain spaces
+            prefix = node_data['id']
+            detailed_nodes = {
+                node: {'data': {'id': node, 'label': node}, 'style': {'background-color': prefix_colors[node.split(' ')[0]]}}
+                for node in G.nodes() if node.startswith(prefix)
+            }
+            detailed_edges = [
+                {'data': {'source': edge[0], 'target': edge[1]}}
+                for edge in G.edges() if edge[0].startswith(prefix) and edge[1].startswith(prefix) and edge[0] in detailed_nodes and edge[1] in detailed_nodes
+            ]
+            return list(detailed_nodes.values()) + detailed_edges
 
-        return list(detailed_nodes.values()) + detailed_edges
+        # Handle class node click (do nothing or handle differently if required)
+        else:
+            # If detailed view for a class is needed, implement here; otherwise, return current_elements to keep current state
+            return current_elements
 
     # Return initial state if no node data or other conditions not met
     return cluster_elements
-
-
-
-
 
 if __name__ == '__main__':
     app.run_server(debug=True)

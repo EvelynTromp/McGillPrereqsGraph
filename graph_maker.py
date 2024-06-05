@@ -91,20 +91,36 @@ app.layout = html.Div([
     State('cytoscape-graph', 'elements')
 )
 def display_cluster_details(node_data, n_clicks, current_elements):
-    if not node_data or ' ' in node_data['id'] or n_clicks > 0:
-        return cluster_elements
+    ctx = dash.callback_context
 
-    prefix = node_data['id']
-    detailed_nodes = {
-        node: {'data': {'id': node, 'label': node}, 'style': {'background-color': prefix_colors[node.split(' ')[0] if node.split(' ')[0] in prefix_colors else prefix]}}
-        for node in G.nodes() if node.startswith(prefix) or any(prereq.startswith(prefix) for prereq in G.predecessors(node))
-    }
-    detailed_edges = [
-        {'data': {'source': edge[0], 'target': edge[1]}}
-        for edge in G.edges() if (edge[0].startswith(prefix) or edge[1].startswith(prefix)) and (edge[0] in detailed_nodes and edge[1] in detailed_nodes)
-    ]
+    # Check what triggered the callback
+    if ctx.triggered:
+        trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
-    return list(detailed_nodes.values()) + detailed_edges
+        # Reset the graph to initial state if the reset button was clicked
+        if trigger_id == 'reset-button':
+            return cluster_elements
+
+    # Display detailed nodes for a tapped cluster
+    if node_data and ' ' not in node_data['id']:
+        prefix = node_data['id']
+        detailed_nodes = {
+            node: {'data': {'id': node, 'label': node}, 'style': {'background-color': prefix_colors[node.split(' ')[0] if node.split(' ')[0] in prefix_colors else prefix]}}
+            for node in G.nodes() if node.startswith(prefix) or any(prereq.startswith(prefix) for prereq in G.predecessors(node))
+        }
+        detailed_edges = [
+            {'data': {'source': edge[0], 'target': edge[1]}}
+            for edge in G.edges() if (edge[0].startswith(prefix) or edge[1].startswith(prefix)) and (edge[0] in detailed_nodes and edge[1] in detailed_nodes)
+        ]
+
+        return list(detailed_nodes.values()) + detailed_edges
+
+    # Return initial state if no node data or other conditions not met
+    return cluster_elements
+
+
+
+
 
 if __name__ == '__main__':
     app.run_server(debug=True)

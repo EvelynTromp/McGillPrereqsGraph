@@ -1,0 +1,31 @@
+import pandas as pd
+
+# Load the CSV file
+df = pd.read_csv("C:\\Users\\evely\\OneDrive\\Desktop\\McGill Courses and Prereqs8.csv")
+
+
+# Initialize a dictionary to hold the course as key and the courses it's a prerequisite for as values
+prereq_for = {}
+
+# Iterate through each row in the DataFrame
+for index, row in df.iterrows():
+    course = row['Course Code']
+    prerequisites = row['Prerequisites']
+    if pd.notna(prerequisites):
+        # Split prerequisites by comma and strip extra spaces
+        prereq_list = [pr.strip() for pr in prerequisites.split(',')]
+        for prereq in prereq_list:
+            if prereq not in prereq_for:
+                prereq_for[prereq] = []
+            prereq_for[prereq].append(course)
+
+# Convert the dictionary to a list of lists for easier DataFrame conversion
+data = []
+for key, values in prereq_for.items():
+    data.append([key, ', '.join(values)])
+
+# Create a new DataFrame
+new_df = pd.DataFrame(data, columns=['Course Code', 'Is a Prerequisite for'])
+
+# Save the new DataFrame to CSV
+new_df.to_csv("C:\\Users\\evely\\OneDrive\\Desktop\\prerequisite_relationships2.csv", index=False)

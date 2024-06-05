@@ -5,7 +5,7 @@ from dash import html, dcc, Input, Output
 import dash_cytoscape as cyto
 
 # Load the CSV file
-df = pd.read_csv("C:\\Users\\evely\\OneDrive\\Desktop\\prerequisite_relationships1.csv")
+df = pd.read_csv("C:\\Users\\evely\\OneDrive\\Desktop\\prerequisite_relationships2.csv")
 
 # Handle multiple prerequisites separated by commas
 df['Is a Prerequisite for'] = df['Is a Prerequisite for'].str.split(', ')
@@ -19,19 +19,22 @@ for index, row in df_exploded.iterrows():
     G.add_edge(row['Course Code'], row['Is a Prerequisite for'])
 
 # Convert the graph into a format that can be used by Dash Cytoscape
-elements = []
-for node in G.nodes():
-    elements.append({'data': {'id': node, 'label': node}})
-for edge in G.edges():
-    elements.append({'data': {'source': edge[0], 'target': edge[1]}})
+elements = [
+    {'data': {'id': node, 'label': node}}
+    for node in G.nodes()
+]
+elements += [
+    {'data': {'source': edge[0], 'target': edge[1]}}
+    for edge in G.edges()
+]
 
 app = dash.Dash(__name__)
 app.layout = html.Div([
-    html.P("Click on a node to highlight its connections:"),
+    html.P("Click on a class to see what its a prerequisite for"),
     cyto.Cytoscape(
         id='cytoscape-graph',
         elements=elements,
-        style={'width': '100%', 'height': '400px'},
+        style={'width': '100%', 'height': '500px'},
         layout={'name': 'cose'},
         stylesheet=[
             {'selector': 'node',
@@ -39,9 +42,16 @@ app.layout = html.Div([
                  'label': 'data(label)',
                  'background-color': '#0074D9'}},
             {'selector': 'edge',
-             'style': {'line-color': '#CCCCCC'}},
+             'style': {
+                 'line-color': '#CCCCCC',
+                 'curve-style': 'bezier',
+                 'target-arrow-shape': 'triangle'}},
             {'selector': '.highlighted',
-             'style': {'background-color': '#FF4136', 'line-color': '#FF4136'}}
+             'style': {
+                 'background-color': '#FF4136', 'line-color': '#FF4136'}},
+            {'selector': '.highlighted-edge',
+             'style': {
+                 'line-color': '#FF4136', 'target-arrow-color': '#FF4136'}}
         ]
     )
 ])
@@ -59,13 +69,22 @@ def generate_stylesheet(node_data):
             }},
             {'selector': 'edge',
              'style': {
-                 'line-color': '#CCCCCC'
+                 'line-color': '#CCCCCC',
+                 'curve-style': 'bezier',
+                 'target-arrow-shape': 'triangle'
             }}
         ]
     stylesheet = [
         {'selector': 'node',
          'style': {
-             'background-color': '#0074D9'
+             'background-color': '#0074D9',
+             'label': 'data(label)'
+         }},
+        {'selector': 'edge',
+         'style': {
+             'line-color': '#CCCCCC',
+             'curve-style': 'bezier',
+             'target-arrow-shape': 'triangle'
          }},
         {'selector': f'node[id = "{node_data["id"]}"]',
          'style': {
@@ -73,11 +92,9 @@ def generate_stylesheet(node_data):
          }},
         {'selector': f'edge[source = "{node_data["id"]}"]',
          'style': {
-             'line-color': '#FF4136'
-         }},
-        {'selector': 'edge',
-         'style': {'line-color': '#CCCCCC',
-                   'curve-style': 'bezier'}}
+             'line-color': '#FF4136',
+             'target-arrow-color': '#FF4136'
+         }}
     ]
     return stylesheet
 

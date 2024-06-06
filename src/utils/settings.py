@@ -21,5 +21,5 @@ SRC_PATH = PROJECT_PATH / 'src'
 NOTEBOOKS_PATH = SRC_PATH / 'notebooks'
 
 # CSVs
-RAW_COURSES_CSV = CSV_PATH / 'McGill Courses and Prereqs9.csv'
-COURSES_CSV = CSV_PATH / 'Formatted McGill Courses and Prereqs.csv'
+RAW_COURSES_CSV = CSV_PATH / 'McGill_Courses_and_Prereqs9.csv'
+COURSES_CSV = CSV_PATH / 'Formatted_McGill_Courses_and_Prereqs.csv'

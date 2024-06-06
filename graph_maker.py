@@ -85,7 +85,7 @@ app.layout = html.Div([
                     'line-color': '#ccc',
                     'curve-style': 'bezier',
                     'target-arrow-shape': 'triangle',
-                    'width': 2
+                    'width': 2,
                 }
             }
         ]

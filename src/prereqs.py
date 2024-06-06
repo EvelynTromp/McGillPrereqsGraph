@@ -1,6 +1,8 @@
+import csv
 import requests
 from bs4 import BeautifulSoup
-import csv
+from src.utils.settings import RAW_COURSES_CSV, COURSE_WEBSITE
+
 
 def fetch_course_prerequisites(course_url):
     # Send a GET request to the course detail page
@@ -65,8 +67,10 @@ def save_to_csv(course_data, filename):
             writer.writerow([course_name, prerequisites_str])
     print(f"Data successfully saved to {filename}")
 
-# Base URL for course search pages
-base_url = 'https://www.mcgill.ca/study/2024-2025/courses/search'
-courses = fetch_courses(base_url)
-# Save the data to CSV
-save_to_csv(courses, 'C:\\Users\\evely\\OneDrive\\Desktop\\McGill Courses and Prereqs9.csv')
+
+if __name__ == '__main__':
+    # Base URL for course search pages
+    courses = fetch_courses(COURSE_WEBSITE)
+
+    # Save the data to CSV
+    save_to_csv(courses, RAW_COURSES_CSV)

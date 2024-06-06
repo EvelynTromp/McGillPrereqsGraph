@@ -1,5 +1,7 @@
 import csv
 import re
+from src.utils.settings import RAW_COURSES_CSV, COURSES_CSV
+
 
 def format_course_code(course_code):
     # Remove dashes and replace with spaces
@@ -24,9 +26,6 @@ def process_courses(input_file_path, output_file_path):
             formatted_prerequisites = [format_course_code(code) for code in prerequisites.split(',')]
             writer.writerow([formatted_course_code, ','.join(formatted_prerequisites)])
 
-# Specify the input and output file paths
-input_file_path = 'C:\\Users\\evely\\OneDrive\\Desktop\\McGill Courses and Prereqs9.csv'
-output_file_path = 'C:\\Users\\evely\\OneDrive\\Desktop\\Formatted McGill Courses and Prereqs.csv'
 
-# Process the courses
-process_courses(input_file_path, output_file_path)
+if __name__ == '__main__':
+    process_courses(RAW_COURSES_CSV, COURSES_CSV)

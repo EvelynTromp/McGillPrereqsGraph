@@ -1,12 +1,13 @@
-import pandas as pd
-import networkx as nx
 import dash
-from dash import html, dcc, Input, Output, State
 import dash_cytoscape as cyto
+import networkx as nx
+import pandas as pd
 import random
+from dash import html, dcc, Input, Output, State
+from src.utils.settings import COURSES_CSV
 
 # Load the CSV file
-df = pd.read_csv("C:\\Users\\evely\\OneDrive\\Desktop\\Formatted McGill Courses and Prereqs.csv")
+df = pd.read_csv(COURSES_CSV)
 
 # Ensure all data is treated as string and handle missing values
 df['Course Code'] = df['Course Code'].astype(str)
@@ -91,6 +92,7 @@ app.layout = html.Div([
         ]
     )
 ])
+
 @app.callback(
     Output('cytoscape-graph', 'elements'),
     Output('cytoscape-graph', 'layout'),
@@ -153,6 +155,7 @@ def display_cluster_details(node_data, n_clicks, current_elements):
             return updated_node_elements + updated_edges, {'name': 'cose'}
 
     return cluster_elements, {'name': 'grid'}
+
 
 if __name__ == '__main__':
     app.run_server(debug=True)

@@ -20,6 +20,10 @@ df_exploded = df.explode('Prerequisites')
 # Create a directed graph
 G = nx.DiGraph()
 
+# Add every course as a node
+for course in df['Course Code'].unique():
+    G.add_node(course)
+
 # Assuming df_exploded is your DataFrame with courses and their prerequisites
 for index, row in df_exploded.iterrows():
     if row['Prerequisites'].strip():  # Only add edge if there is a prerequisite

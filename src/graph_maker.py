@@ -4,10 +4,12 @@ import networkx as nx
 import pandas as pd
 import random
 from dash import html, dcc, Input, Output, State
-from src.utils.settings import COURSES_CSV
+#from src.utils.settings import COURSES_CSV
 
-# Load the CSV file
-df = pd.read_csv(COURSES_CSV)
+df = pd.read_csv("C:\\Users\\evely\\OneDrive\\Desktop\\Formatted McGill Courses and Prereqs.csv")
+
+
+print("FFHFHHFFHFHFHFHFHFHFHFH")
 
 # Ensure all data is treated as string and handle missing values
 df['Course Code'] = df['Course Code'].astype(str)
@@ -20,14 +22,22 @@ df_exploded = df.explode('Prerequisites')
 # Create a directed graph
 G = nx.DiGraph()
 
-# Add every course as a node
-for course in df['Course Code'].unique():
-    G.add_node(course)
+# Function to extract and label course level
+def label_with_level(course_code):
+    parts = course_code.split()
+    if len(parts) > 1 and parts[1].isdigit():
+        level = int(parts[1][0])  # Assuming the level is the first digit of the course number
+        return f"lvl {level} - {course_code}"
+    return course_code
 
-# Assuming df_exploded is your DataFrame with courses and their prerequisites
+# Add every course as a node with level labeling
+for course in df['Course Code'].unique():
+    course_label = label_with_level(course)
+    G.add_node(course, label=course_label)  # Set label attribute here
+
+# Adding edges with prerequisites
 for index, row in df_exploded.iterrows():
     if row['Prerequisites'].strip():  # Only add edge if there is a prerequisite
-        # Reverse the direction here by switching the order of addition
         G.add_edge(row['Prerequisites'], row['Course Code'])
 
 # Define a function to generate light colors
@@ -39,6 +49,7 @@ prefix_colors = {}
 cluster_elements = []
 seen_prefixes = set()
 for node in G.nodes():
+    node_label = G.nodes[node].get('label', node) 
     prefix = node.split(' ')[0]
     if prefix not in prefix_colors:
         prefix_colors[prefix] = generate_light_color()
@@ -65,7 +76,8 @@ app.layout = html.Div([
         stylesheet=[
             {
                 'selector': '.cluster',
-                'style': {                    'content': 'data(label)',
+                'style': {
+                    'content': 'data(label)',
                     'text-valign': 'center',
                     'color': 'white',
                     'text-outline-width': 2,
@@ -74,7 +86,7 @@ app.layout = html.Div([
                     'height': '60px'
                 }
             },
-{
+            {
                 'selector': 'node',
                 'style': {
                     'background-color': '#888',
@@ -96,10 +108,9 @@ app.layout = html.Div([
         ]
     )
 ])
-
 @app.callback(
-    Output('cytoscape-graph', 'elements'),
-    Output('cytoscape-graph', 'layout'),
+    [Output('cytoscape-graph', 'elements'),
+     Output('cytoscape-graph', 'layout')],
     [Input('cytoscape-graph', 'tapNodeData'),
      Input('reset-button', 'n_clicks')],
     State('cytoscape-graph', 'elements')
@@ -107,55 +118,51 @@ app.layout = html.Div([
 def display_cluster_details(node_data, n_clicks, current_elements):
     ctx = dash.callback_context
 
-    # Check what triggered the callback
     if ctx.triggered:
         trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
-
-        # Reset the graph to initial state if the reset button was clicked
         if trigger_id == 'reset-button':
-            return cluster_elements, {'name': 'grid'}  # Return elements with 'grid' layout
+            return cluster_elements, {'name': 'grid'}
 
     if node_data:
         prefix = node_data['id']
         if ' ' not in prefix:  # Cluster node click
-            cluster_nodes = [
-                {'data': {'id': node, 'label': node}, 'style': {'background-color': prefix_colors[node.split(' ')[0]]}}
-                for node in G.nodes() if node.startswith(prefix)
-            ]
-            # Since the graph now inherently has the correct direction, adjust the cluster_edges definition
-            cluster_edges = [
-                {'data': {'source': edge[0], 'target': edge[1]}}  # Use direct edge data without reversing
-                for edge in G.edges() if edge[0].startswith(prefix)
-            ]
+            nodes_in_cluster = [node for node in G.nodes() if node.startswith(prefix)]
+            # Identify all nodes and edges that need to be displayed
+            additional_nodes = set(nodes_in_cluster)
+            for node in nodes_in_cluster:
+                connected_nodes = {edge[1] for edge in G.edges(node)} | {edge[0] for edge in G.in_edges(node)}
+                additional_nodes.update(connected_nodes)
 
-            # Additional nodes connected to the nodes in the cluster
-            additional_nodes = []
-            for edge in G.edges():
-                if edge[0] in [node['data']['id'] for node in cluster_nodes] or edge[1] in [node['data']['id'] for node in cluster_nodes]:
-                    additional_nodes.extend([edge[0], edge[1]])
-            additional_nodes = set(additional_nodes) - set([node['data']['id'] for node in cluster_nodes])
-            additional_node_elements = [
-                {'data': {'id': node, 'label': node}, 'style': {'background-color': prefix_colors[node.split(' ')[0]]}}
+            # Create elements for all these nodes
+            cluster_nodes = [
+                {'data': {'id': node, 'label': G.nodes[node].get('label', node)}, 
+                 'style': {'background-color': prefix_colors[node.split(' ')[0]]}}
                 for node in additional_nodes
             ]
-            return cluster_nodes + additional_node_elements + cluster_edges, {'name': 'cose'}
-        
+
+            # Collect all relevant edges
+            cluster_edges = [
+                {'data': {'source': edge[0], 'target': edge[1]}}
+                for edge in G.edges() if edge[0] in additional_nodes and edge[1] in additional_nodes
+            ]
+
+            return cluster_nodes + cluster_edges, {'name': 'cose'}
+
         else:  # Class node click
             node_id = node_data['id']
-            updated_nodes = {node_id: {'data': {'id': node_id, 'label': node_id}, 'style': {'background-color': prefix_colors[node_id.split(' ')[0]]}}}
+            updated_nodes = {
+                node_id: {'data': {'id': node_id, 'label': G.nodes[node_id].get('label', node_id)}, 'style': {'background-color': prefix_colors[node_id.split(' ')[0]]}}
+            }
             updated_edges = []
-            # Fetch outgoing edges from the clicked node to get the courses for which it is a prerequisite
-            for edge in G.edges(node_id):  # This retrieves only outgoing edges from the clicked node
-                target_id = edge[1]
-                # Ensure the target node is added
-                if target_id not in updated_nodes:
-                    updated_nodes[target_id] = {'data': {'id': target_id, 'label': target_id}, 'style': {'background-color': prefix_colors[target_id.split(' ')[0]]}}
-                # Add edge
-                edge_style = {'line-color': 'red', 'width': 4}
-                updated_edges.append({'data': {'source': node_id, 'target': target_id}, 'style': edge_style})  # Correctly direct the edge from source to target
-            # Convert updated_nodes dictionary to list
+            for edge in G.edges(node_id):
+                if edge[1] in G.nodes:
+                    updated_nodes[edge[1]] = {
+                        'data': {'id': edge[1], 'label': G.nodes[edge[1]].get('label', edge[1])},
+                        'style': {'background-color': prefix_colors[edge[1].split(' ')[0]]}
+                    }
+                    updated_edges.append({'data': {'source': node_id, 'target': edge[1]}, 'style': {'line-color': 'red', 'width': 4}})
+
             updated_node_elements = list(updated_nodes.values())
-            
             return updated_node_elements + updated_edges, {'name': 'cose'}
 
     return cluster_elements, {'name': 'grid'}

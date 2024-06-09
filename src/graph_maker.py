@@ -4,10 +4,14 @@ import networkx as nx
 import pandas as pd
 import random
 from dash import html, dcc, Input, Output, State
+from src.utils.settings import COURSES_CSV
 
+print("graph maker")
 # Load and process course data
 def load_course_data(filepath):
+    print(filepath)
     df = pd.read_csv(filepath)
+    print(df)
     df['Course Code'] = df['Course Code'].astype(str)
     df['Prerequisites'] = df['Prerequisites'].astype(str).replace('nan', '')
     df['Prerequisites'] = df['Prerequisites'].str.split(', ')
@@ -25,8 +29,23 @@ def create_course_graph(df):
 
 # Label course with its level
 def label_with_level(course_code):
+    # Check if the course code starts with an asterisk
+    not_offered = course_code.startswith('*')
+    if not_offered:
+        course_code = course_code[1:]  # Remove the asterisk from the course code
+
+    # Continue with the existing logic to label the course with its level
     parts = course_code.split()
-    return f"lvl {parts[1][0]} - {course_code}" if len(parts) > 1 and parts[1].isdigit() else course_code
+    if len(parts) > 1 and parts[1].isdigit():
+        level_label = f"lvl {parts[1][0]} - {course_code}"
+    else:
+        level_label = f"{course_code}"  # Default label if level cannot be determined
+
+    # Append "(not offered)" if the original course code had an asterisk
+    if not_offered:
+        level_label += " (not offered)"
+
+    return level_label
 
 # Function to generate light colors
 def generate_light_color():
@@ -34,14 +53,14 @@ def generate_light_color():
 
 # Application initialization
 app = dash.Dash(__name__)
-df = load_course_data("C:\\Users\\evely\\OneDrive\\Desktop\\Formatted McGill Courses and Prereqs.csv")
+df = load_course_data(COURSES_CSV)
 G = create_course_graph(df)
 
 # Assign colors and prepare clusters
 prefix_colors, cluster_elements = {}, []
 seen_prefixes = set()
 for node in G.nodes():
-    prefix = node.split(' ')[0]
+    prefix = node.split(' ')[0].lstrip('*') 
     if prefix not in prefix_colors:
         prefix_colors[prefix] = generate_light_color()
     if prefix not in seen_prefixes:
@@ -99,19 +118,39 @@ def update_cluster_view(prefix):
     for node in nodes_in_cluster:
         additional_nodes.update(G.neighbors(node))
         additional_nodes.update(G.predecessors(node))
-    
-    # Using get with a default value to avoid KeyError
-    cluster_nodes = [{'data': {'id': node, 'label': G.nodes[node].get('label', node)}, 'style': {'background-color': prefix_colors[node.split(' ')[0]]}} for node in additional_nodes]
-    cluster_edges = [{'data': {'source': edge[0], 'target': edge[1]}} for edge in G.edges() if edge[0] in additional_nodes and edge[1] in additional_nodes]
+
+    # Update here to strip asterisks when fetching the prefix for color styling
+    cluster_nodes = [{'data': {'id': node, 'label': G.nodes[node].get('label', node)},
+                      'style': {'background-color': prefix_colors[node.split(' ')[0].lstrip('*')]}}
+                     for node in additional_nodes]
+    cluster_edges = [{'data': {'source': edge[0], 'target': edge[1]}}
+                     for edge in G.edges() if edge[0] in additional_nodes and edge[1] in additional_nodes]
     return cluster_nodes + cluster_edges
+
+# Ensure all code that uses prefixes strips asterisks
+for node in G.nodes():
+    clean_prefix = node.split(' ')[0].lstrip('*')  # Strip asterisks for clean prefixes
+    if clean_prefix not in prefix_colors:
+        prefix_colors[clean_prefix] = generate_light_color()
+    if clean_prefix not in seen_prefixes:
+        cluster_elements.append({
+            'data': {'id': clean_prefix, 'label': clean_prefix},
+            'classes': 'cluster',
+            'style': {'background-color': prefix_colors[clean_prefix]}
+        })
+        seen_prefixes.add(clean_prefix)
 
 def update_class_view(node_id):
     # Extract nodes and edges for the clicked class node
     connected_nodes = {edge[1] for edge in G.edges(node_id)} | {edge[0] for edge in G.in_edges(node_id)}
     connected_nodes.add(node_id)
-    # Using get with a default value to avoid KeyError
-    class_nodes = [{'data': {'id': node, 'label': G.nodes[node].get('label', node)}, 'style': {'background-color': prefix_colors[node.split(' ')[0]]}} for node in connected_nodes]
-    class_edges = [{'data': {'source': edge[0], 'target': edge[1]}} for edge in G.edges() if edge[0] in connected_nodes and edge[1] in connected_nodes]
+    
+    # Use clean prefixes when accessing the prefix_colors dictionary
+    class_nodes = [{'data': {'id': node, 'label': G.nodes[node].get('label', node)}, 
+                    'style': {'background-color': prefix_colors[node.split(' ')[0].lstrip('*')]}} 
+                   for node in connected_nodes]
+    class_edges = [{'data': {'source': edge[0], 'target': edge[1]}} 
+                   for edge in G.edges() if edge[0] in connected_nodes and edge[1] in connected_nodes]
     return class_nodes + class_edges
 
 if __name__ == '__main__':

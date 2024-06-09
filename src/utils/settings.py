@@ -12,7 +12,6 @@ COURSE_WEBSITE = 'https://www.mcgill.ca/study/2024-2025/courses/search' # TODO
 
 ## Data
 DATA_PATH = PROJECT_PATH / 'data'
-CACHE_PATH = DATA_PATH / '.cache'
 PLOTS_PATH = DATA_PATH / 'plots'
 CSV_PATH = DATA_PATH / 'csv'
 

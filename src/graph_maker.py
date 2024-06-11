@@ -6,7 +6,7 @@ import random
 from dash import html, dcc, Input, Output, State
 from src.utils.settings import COURSES_CSV
 
-print("graph maker")
+
 # Load and process course data
 def load_course_data(filepath):
     print(filepath)

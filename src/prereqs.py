@@ -4,8 +4,8 @@ from bs4 import BeautifulSoup
 from src.utils.settings import RAW_COURSES_CSV, COURSE_WEBSITE
 from concurrent.futures import ThreadPoolExecutor
 import re  # Regular expression module to help extract course codes
-
-print("prereqs")
+import cProfile
+import pstats
 
 def fetch_course_prerequisites(course_url):
     response = requests.get(course_url)
@@ -40,7 +40,7 @@ def fetch_course_details(course):
         return (course_name, prerequisites)
     return None
 
-def fetch_courses(base_url, start_page=1):
+def fetch_courses(base_url, start_page=0):
     course_data = []
     page = start_page
     with ThreadPoolExecutor(max_workers=20) as executor:
@@ -52,8 +52,9 @@ def fetch_courses(base_url, start_page=1):
             if not courses:
                 break
 
-            if page > 2: #DEBUG
+            if page > 1:
                 break
+
 
             # Use threading to fetch course details concurrently
             futures = [executor.submit(fetch_course_details, course) for course in courses]
@@ -73,6 +74,8 @@ def save_to_csv(course_data, filename):
             prerequisites_str = ', '.join(prerequisites)
             writer.writerow([course_name, prerequisites_str])
     print(f"Data successfully saved to {filename}")
+
+
 
 if __name__ == '__main__':
     courses = fetch_courses(COURSE_WEBSITE)

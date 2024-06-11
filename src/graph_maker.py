@@ -86,7 +86,7 @@ app.layout = html.Div([
         layout={'name': 'grid'},
         stylesheet=[
             {'selector': '.cluster', 'style': {'content': 'data(label)', 'text-valign': 'center', 'color': 'white', 'text-outline-width': 2, 'text-outline-color': '#888', 'width': '60px', 'height': '60px'}},
-            {'selector': 'node', 'style': {'background-color': '#888', 'label': 'data(label)', 'color': '#000', 'text-outline-color': '#fff', 'text-outline-width': 1}},
+            {'selector': 'node', 'style': {'shape': 'rectangle', 'background-color': '#888', 'label': 'data(label)', 'color': '#000', 'text-outline-color': '#fff', 'text-outline-width': 1, 'text-valign': 'center', 'width': '100px', 'height': '50px'}},
             {'selector': 'edge', 'style': {'line-color': '#ccc', 'curve-style': 'bezier', 'target-arrow-shape': 'triangle', 'width': 2}}
         ]
     )

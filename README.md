@@ -103,3 +103,5 @@ This project is actively developed. Below is a list of tasks and areas that need
 - [ ] Improve the code quality and structure.
 - [ ] Add more error handling and logging.
 - [ ] Add more documentation and comments.
+
+(Thank you to the amazing Henri Lemoine (https://github.com/henri123lemoine) for helping me with organizing this repository!)
